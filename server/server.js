@@ -10,12 +10,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('❌ DB error:', err));
+  .catch(err => console.error('❌ DB error:', err.message));
 
+// Base route
 app.get('/', (req, res) => res.send('Hello from backend!'));
 
+// Signup
 app.post('/signup', async (req, res) => {
   const { fullname, email, username, password } = req.body;
   try {
@@ -26,10 +29,12 @@ app.post('/signup', async (req, res) => {
     await newUser.save();
     res.status(201).json({ message: 'User registered successfully' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Signup Error:', err);
+    res.status(500).json({ message: 'Server error during signup', error: err.message });
   }
 });
 
+// Login
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -41,21 +46,34 @@ app.post('/login', async (req, res) => {
 
     res.json({ message: 'Login successful', user: { username: user.username, email: user.email } });
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Login Error:', err);
+    res.status(500).json({ message: 'Server error during login', error: err.message });
   }
 });
 
+// Save single order
 app.post('/api/single-order', async (req, res) => {
   const { productName, description, price, quantity, imageUrl, category, buyerEmail } = req.body;
   try {
     const total = price * quantity;
-    const newOrder = new SingleOrder({ productName, description, price, quantity, total, imageUrl, category, buyerEmail });
+    const newOrder = new SingleOrder({
+      productName,
+      description,
+      price,
+      quantity,
+      total,
+      imageUrl,
+      category,
+      buyerEmail
+    });
     await newOrder.save();
     res.status(201).json({ message: "✅ Order saved", orderId: newOrder._id });
   } catch (err) {
-    res.status(500).json({ message: "❌ Server error" });
+    console.error('❌ Order Error:', err);
+    res.status(500).json({ message: "❌ Server error during order saving", error: err.message });
   }
 });
 
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
